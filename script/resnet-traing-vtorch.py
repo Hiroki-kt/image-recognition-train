@@ -14,6 +14,32 @@ from matplotlib import pyplot as plt
 import pickle
 import datetime
 import sys
+from argparse import ArgumentParser
+
+# Default parameter
+MODEL = '18'
+BATCH_SIZE = 64
+EPOCHS = 40
+
+
+def get_option(model, batch, epoch):
+    argparser = ArgumentParser()
+    argparser.add_argument('-m', '--model', type=str,
+                           default=model,
+                           help='Name of model')
+    argparser.add_argument('-b', '--batch', type=int,
+                           default=batch,
+                           help='Specify size of batch')
+    argparser.add_argument('-e', '--epoch', type=int,
+                           default=epoch,
+                           help='Specify number of epoch')
+    argparser.add_argument('-dlc', '--drawLearningCurve', type=bool,
+                           default=False,
+                           help='Whether to draw learning curve after learning')
+    argparser.add_argument('-po', '--predictOnly', type=bool,
+                           default=False,
+                           help='Only execute predict.')
+    return argparser.parse_args()
 
 
 def validate(net, validloader):
@@ -41,18 +67,22 @@ def validate(net, validloader):
 
 
 if __name__ == '__main__':
-    args = sys.argv
-    N_EPOCH = 3
-    BATCH = 64
+    args = get_option(MODEL, BATCH_SIZE, EPOCHS)
+    print(args)
+    N_EPOCH = args.epoch
+    BATCH = args.batch
     DATA_DIR = './data/cifar-10-tensor/'
     now = datetime.datetime.now()
 
-    if (args[1] == '18'):
+    if (args.model == '18'):
         model = models.resnet18()
-    elif (args[1] == '50'):
+    elif (args.model == '50'):
         model = models.resnet50()
-    else:
+    elif (args[2] == '101'):
         model = models.resnet101()
+    else:
+        print("not register the model")
+        sys.exit()
 
     # logging
     log = {'train_loss': [],
