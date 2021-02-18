@@ -11,6 +11,9 @@ from torch.utils.data import Dataset, DataLoader
 from torchvision import models
 from tqdm import tqdm
 from matplotlib import pyplot as plt
+import pickle
+import datetime
+import sys
 
 
 def validate(net, validloader):
@@ -38,12 +41,24 @@ def validate(net, validloader):
 
 
 if __name__ == '__main__':
+    args = sys.argv
+    N_EPOCH = 3
     BATCH = 64
     DATA_DIR = './data/cifar-10-tensor/'
+    now = datetime.datetime.now()
 
-    model = models.resnet18()
-    # model = models.resnet50()
-    # model = models.resnet101()
+    if (args[1] == '18'):
+        model = models.resnet18()
+    elif (args[1] == '50'):
+        model = models.resnet50()
+    else:
+        model = models.resnet101()
+
+    # logging
+    log = {'train_loss': [],
+           'val_loss': [],
+           'train_err_rate': [],
+           'val_err_rate': []}
 
     # load dataset
     if not os.path.isdir(DATA_DIR):
@@ -75,14 +90,6 @@ if __name__ == '__main__':
         patience=10,
         verbose=True
     )
-
-    N_EPOCH = 40
-
-    # logging
-    log = {'train_loss': [],
-           'val_loss': [],
-           'train_err_rate': [],
-           'val_err_rate': []}
 
     # traing
     for epoch in tqdm(range(N_EPOCH)):
@@ -116,9 +123,13 @@ if __name__ == '__main__':
             print(loss)
             print(f'train_err_rate:\t{train_err_rate:.1f}')
             print(f'val_err_rate:\t{val_err_rate:.1f}')
-            # scheduler.step(val_loss)
+            scheduler.step(val_loss)
     else:
         print('Finished Training')
+
+        with open("./data/" + str(now.date()) + ".pkl", "wb") as f:
+            pickle.dump(log, f)
+        print('saved')
 
 
 """
