@@ -1,0 +1,18 @@
+{
+  "key-1":{
+    "mask":"o-left",
+    "img":"o_1"
+  },
+  "key-2":{
+    "mask":"o-right",
+    "img":"o_2"
+  },
+  "key-3":{
+    "mask":"u-right",
+    "img":"u_1"
+  },
+  "key-4":{
+    "mask":"u-left",
+    "img":"u_2"
+  }
+}

@@ -34,8 +34,8 @@ def add_mask(img_url, mask_img, view=False):
     return img
 
 
-def get_imgs(data_path, output_path):
-    key_open = open('./data/data.json', 'r')
+def get_imgs(data_path, output_path, mask_path):
+    key_open = open('./data.json', 'r')
     key_json = json.load(key_open)
     for key_id in key_json:
         key = key_json[key_id]
@@ -51,7 +51,7 @@ def get_imgs(data_path, output_path):
                 print(img_path)
                 # add mask to image and change to jpg
                 mask_img = make_mask_img(
-                    './data/complete_img/mask-' + key['mask'] + '.bmp')
+                    mask_path + '/mask-' + key['mask'] + '.bmp')
                 masked_img = add_mask(img_path, mask_img)
                 cv2.imwrite(output_path + '/images/' + str(count) +
                             '_' + key['mask'] + '.jpg', masked_img)
@@ -66,4 +66,4 @@ def get_imgs(data_path, output_path):
 
 if __name__ == '__main__':
     args = sys.argv
-    get_imgs(args[1], args[2])
+    get_imgs(args[1], args[2], args[3])
