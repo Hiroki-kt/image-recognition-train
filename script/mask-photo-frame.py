@@ -3,6 +3,7 @@ import numpy as np
 import glob
 import json
 import os
+import sys
 
 
 def make_mask_img(img_url, view=False):
@@ -64,4 +65,5 @@ def get_imgs(data_path, output_path):
 
 
 if __name__ == '__main__':
-    get_imgs('./data/yolo_peel_val', './output')
+    args = sys.argv
+    get_imgs(args[1], args[2])
