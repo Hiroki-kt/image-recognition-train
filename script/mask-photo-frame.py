@@ -65,5 +65,8 @@ def get_imgs(data_path, output_path, mask_path):
 
 
 if __name__ == '__main__':
+    # arg1: input directory path
+    # arg2: output directory path
+    # arg3: mask directory path
     args = sys.argv
     get_imgs(args[1], args[2], args[3])
