@@ -4,6 +4,7 @@ import glob
 import json
 import os
 import sys
+import xml.etree.ElementTree as ET
 
 
 def make_mask_img(img_url, view=False):
@@ -64,9 +65,49 @@ def get_imgs(data_path, output_path, mask_path):
                 count += 1
 
 
+def voc_get_imgs(data_path, output_path, mask_path):
+    key_open = open('./data.json', 'r')
+    key_json = json.load(key_open)
+    old_img_path = "none"
+    for key_id in key_json:
+        key = key_json[key_id]
+        directory = os.listdir(output_path + '/Annotations')
+        count = len(directory)
+        for img_path in glob.glob(data_path + '/JPEGImages/*' + key['img'] + '*.bmp'):
+            # check the label
+            label_path = img_path.replace('.bmp', '.xml')
+            label_path = label_path.replace('JPEGImages', 'Annotations')
+            label = ET.parse(label_path)
+            label_tag = label.getroot().iter(tag='name')
+            label_count = 0
+            for i in label_tag:
+                if label_count > 0:
+                    continue
+                print(img_path)
+                # add mask to image and change to jpg
+                mask_img = make_mask_img(
+                    mask_path + '/mask-' + key['mask'] + '.bmp')
+                masked_img = add_mask(img_path, mask_img)
+                cv2.imwrite(output_path + '/JPEGImages/' + str(count) +
+                            '_' + key['mask'] + '.jpg', masked_img)
+                # cp the label as new name
+                for folder in label.iter('folder'):
+                    folder.text = str(count)
+                for name in label.iter('filename'):
+                    name.text = str(count) + '_' + key['mask'] + '.jpg'
+                # ET.ElementTree(label.getroot()).write(output_path + '/Annotations/' +
+                #                                       str(count) + '_' + key['mask'] + '.xml')
+                ET.ElementTree(label.getroot()).write(output_path + '/Annotations/' +
+                                                      str(count) + '_' + key['mask'] + '.xml')
+
+                label_count += 1
+                count += 1
+
+
 if __name__ == '__main__':
     # arg1: input directory path
     # arg2: output directory path
     # arg3: mask directory path
     args = sys.argv
-    get_imgs(args[1], args[2], args[3])
+    # get_imgs(args[1], args[2], args[3])
+    voc_get_imgs(args[1], args[2], args[3])
