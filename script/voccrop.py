@@ -1,18 +1,21 @@
 # -*- coding: utf-8 -*-
-# from trimming import Trimming
-from photo import Photo
-from common.common import CommonMixIn
-from crop import Crop
-from common.voc_fmt import VOCMixIn, VOCElem
-# from ssdnet import MultiBoxEncoder, SSD300, SSD512, SSD300_v2, SSD512_v2, preproc_for_test
-from datetime import datetime
-from PIL import Image
-import numpy as np
+
 import sys
-import os
-import time
-import csv
+sys.path.append("script")
+
 from argparse import ArgumentParser
+import csv
+import time
+import os
+import numpy as np
+from PIL import Image
+from datetime import datetime
+from common.voc_fmt import VOCMixIn, VOCElem
+from crop import Crop
+from common.common import CommonMixIn
+from photo import Photo
+# from trimming import Trimming
+# from ssdnet import MultiBoxEncoder, SSD300, SSD512, SSD300_v2, SSD512_v2, preproc_for_test
 
 
 class VOCCrop(VOCMixIn, CommonMixIn):
@@ -45,12 +48,13 @@ class VOCCrop(VOCMixIn, CommonMixIn):
             print("[SKIP CSV] #entries: %d" % (len(self.skip_fns)))
 
         if (self.options.shape):
-            self.h, self.w = self.options.shape.split("x")
-            self.h, self.w = int(self.h), int(self.w)
-            if not (h.isdigit() and w.isdigit()):
-                print(
-                    "[Error] no digits for --shape option. needs HEIGHTxWIDTH format...")
-                sys.exit(1)
+            height, width = self.options.shape.split("x")
+            self.h, self.w = int(height), int(width)
+            # print(type(self.h), type(self.w))
+            # if not (self.h.isdigit() and self.w.isdigit()):
+            #     print(
+            #         "[Error] no digits for --shape option. needs HEIGHTxWIDTH format...")
+            #     sys.exit(1)
 
     def crop_image(self, img, bbox):
         x, y, w, h = bbox
@@ -89,6 +93,22 @@ class VOCCrop(VOCMixIn, CommonMixIn):
             newfpaths.append(img_path)
         return newfpaths
 
+    def overlaped_ratio(self, bbox, bboxes):
+        """
+        bboxに対してbboxとオーバーラップした領域の割合が最大のものの割合と添字番号を返す。
+        bboxes中にオーバーラップしているオブジェクトが１つも見付からない場合は(0.0, None)を返す。
+        """
+        max_overlaped, max_i = 0.0, None
+        # print("bbox: ", bbox)
+        for i, _bbox in enumerate(bboxes):
+            area = self.intersection(bbox, _bbox)
+            # print("_bbox: ", _bbox, area)
+            overlaped_ratio = area / self.area(bbox)
+            if (overlaped_ratio > max_overlaped):
+                max_overlaped = overlaped_ratio
+                max_i = i
+        return max_overlaped, max_i
+
     def show_bboxes(self, img, img_fpath, objects):
         for (lbl, bbox) in objects:
             self.display_box(img, bbox, display_lbl=lbl)
@@ -119,12 +139,17 @@ class VOCCrop(VOCMixIn, CommonMixIn):
         photo_bboxes = [self.box2bbox(box) for box in photo_boxes]
         bboxes_in = {}
         selected_i, all_i = set([]), set(range(0, len(crop_bboxes)))
+        print(photo_labels)
+        print(photo_bboxes)
+
         for photo_bbox, photo_lbl in zip(photo_bboxes, photo_labels):
             # 座標情報のあるcrop_bboxオブジェクトのみ残される処理
             # 写真内のG.T.のobj座標がどのcrop画像に属するか？を選択
+            # print(photo_bbox, photo_lbl)
             try:
-                ratio, crop_i = self.max_overlaped_ratio(
+                ratio, crop_i = self.overlaped_ratio(
                     photo_bbox, crop_bboxes)
+                # print(ratio, crop_i)
             except ZeroDivisionError as e:
                 continue
             if (ratio == 1.0):
@@ -134,6 +159,7 @@ class VOCCrop(VOCMixIn, CommonMixIn):
                 px, py, pw, ph = photo_bbox
                 # crop画像基準にbboxを変換
                 new_photo_bbox = px - cx, py - cy, pw, ph
+
                 if not (crop_i in bboxes_in):
                     # 初回のみベースとなるcrop_imgを保存
                     crop_img = self.crop_image(img, crop_bbox)
@@ -152,18 +178,63 @@ class VOCCrop(VOCMixIn, CommonMixIn):
                     (photo_lbl, new_photo_bbox))
             elif (ratio > 0.0):
                 # 一部オーバーレイしている場合
-                selected_i.add(crop_i)
+                # selected_i.add(crop_i)
+                new_photo_bbox = []
+                for i, _bbox in enumerate(crop_bboxes):
+                    area = self.intersection(photo_bbox, _bbox)
+                    # print("_bbox: ", _bbox, area)
+                    overlaped_ratio = area / self.area(photo_bbox)
+                    if (overlaped_ratio == 0.0):continue
+                    if (overlaped_ratio != 1.0):
+                        copy_bbox = list(photo_bbox)
+                        if (photo_bbox[0] < _bbox[0]):
+                            copy_bbox[0] = _bbox[0]
+                            # print(copy_bbox)
+                        # print(photo_bbox[0] + photo_bbox[2], _bbox[0] + _bbox[2] )
+                        if (photo_bbox[0] + photo_bbox[2] > _bbox[0] + _bbox[2]):
+                            # print(_bbox[0] + _bbox[2] - copy_bbox[0])
+                            copy_bbox[2] = _bbox[0] + _bbox[2] - copy_bbox[0]
+                        if (photo_bbox[0] + photo_bbox[2] <= _bbox[0] + _bbox[2]):
+                            copy_bbox[2] = (_bbox[0] + _bbox[2]) - (photo_bbox[0] + photo_bbox[2])
+                    # print(copy_bbox)
+                    new_photo_bbox.append((tuple(copy_bbox),i))
+                # print(new_photo_bbox)
+                for box in new_photo_bbox:
+                    cx, cy, cw, ch = crop_bbox = crop_bboxes[box[1]]
+                    px, py, pw, ph = box[0]
+                    # crop画像基準にbboxを変換
+                    tf_box = px - cx, py - cy, pw, ph
 
-        for noselected_i in list(all_i - selected_i):
-            # 教師（座標）データに全くオーバーレイしていない（＝メガネかけていない）教師データを登録
-            crop_bbox = crop_bboxes[noselected_i]
-            crop_img = self.crop_image(img, crop_bbox)
-            if (self.h and self.w):
-                # resize mode
-                crop_img = self.resize_image(crop_img, (self.h, self.w),
-                                             pad=self.options.pad, blur=self.options.blur,
-                                             aspect=self.options.pad)
-            bboxes_in[noselected_i] = {"cropimg": crop_img, "objects": []}
+                    if not (box[1] in bboxes_in):
+                        # 初回のみベースとなるcrop_imgを保存
+                        crop_img = self.crop_image(img, crop_bbox)
+                        if (crop_img is None):
+                            # crop_imgが作成出来ない場合は保存対象外とする
+                            print("[skip] invalid bbox [%d]:" %
+                                (box[1]), new_photo_bbox)
+                            continue
+                        if (self.h and self.w):
+                            # resize mode
+                            crop_img = self.resize_image(crop_img, (self.h, self.w),
+                                                        pad=self.options.pad, blur=self.options.blur,
+                                                        aspect=self.options.pad)
+                        bboxes_in[box[1]] = {"cropimg": crop_img, "objects": []}
+                    bboxes_in[box[1]]["objects"].append(
+                        (photo_lbl, tf_box))
+        # print(selected_i)
+        # for i in bboxes_in:
+        #     print(bboxes_in[i]["objects"])
+
+        # for noselected_i in list(all_i - selected_i):
+        #     # 教師（座標）データに全くオーバーレイしていない（＝メガネかけていない）教師データを登録
+        #     crop_bbox = crop_bboxes[noselected_i]
+        #     crop_img = self.crop_image(img, crop_bbox)
+        #     if (self.h and self.w):
+        #         # resize mode
+        #         crop_img = self.resize_image(crop_img, (self.h, self.w),
+        #                                      pad=self.options.pad, blur=self.options.blur,
+        #                                      aspect=self.options.pad)
+        #     bboxes_in[noselected_i] = {"cropimg": crop_img, "objects": []}
 
         return bboxes_in
 
@@ -175,9 +246,10 @@ class VOCCrop(VOCMixIn, CommonMixIn):
         # crop_bboxes = self.detect_for(self.options["class"])    # headを取得
         # head内にG.T.情報のあるhead情報(crop_imgs)のみを抽出
         # todo: crop_bboxes = [(x, y, w, h)1, (x, y, w, h)2, ..., (x, y, w, h)5]
-        crop_bboxes = [(0, 1535, 512, 512), (512, 1535, 512, 512),
+        crop_bboxes = [(1, 1535, 512, 512), (512, 1535, 512, 512),
                        (1024, 1535, 512, 512), (1536, 1535, 512, 512), (1935, 1535, 512, 512)]
         crop_imgs = self.conv_bbox2cropimg(crop_bboxes)
+        # print(crop_imgs)
         self.n_data += 1
 
         # crop画像単位で画像保存＆Annotation生成
@@ -212,7 +284,7 @@ class VOCCrop(VOCMixIn, CommonMixIn):
         """
         バッチメイン
         """
-        print("options:", end=' ')
+        # print("options:", end=' ')
         print(self.options)
         images = self.options.input
         if (os.path.isfile(images)):

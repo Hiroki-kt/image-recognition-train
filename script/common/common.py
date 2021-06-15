@@ -30,13 +30,13 @@ class CommonMixIn(object):
         画像img_baseとimg_ovlを比較し、th以上の差分がある部分のみimg_ovlを
         img_baseに上書きする。
         """
-        logger.info("+++ [img_ovl] start +++")
+        # logger.info("+++ [img_ovl] start +++")
         # th以上のimg_ovlのみを残す。その他は0
         _ovl_pixels = img_ovl * (abs(img_base - img_ovl) >= th)
         _base_pixels = img_base * \
             (abs(img_base - img_ovl) < th)    # 上書きされる部分以外を残す。その他は0
         new_img = _base_pixels + _ovl_pixels
-        logger.info("--- [img_ovl] end ---")
+        # logger.info("--- [img_ovl] end ---")
         return new_img
 
     def is_cv(self, img):
@@ -522,8 +522,8 @@ class CommonMixIn(object):
         return img
 
     def resize_image(self, img, target_shape, pad=True, blur=False, aspect=True):
-        logger.info("+++ [resize_image] start pad: %s, blur: %s, aspect: %s +++" %
-                    (pad, blur, aspect))
+        # logger.info("+++ [resize_image] start pad: %s, blur: %s, aspect: %s +++" %
+        #             (pad, blur, aspect))
         #logger.info("[resize_image] target shape: %s" % target_shape)
         #logger.info("[resize_image] orig shape: %s" % img.shape)
         if (self.is_cv(img)):
@@ -534,7 +534,7 @@ class CommonMixIn(object):
             # PIL
             retval = self._resize_image_pil(
                 img, target_shape, pad=pad, blur=blur, aspect=aspect)
-        logger.info("--- [resize_image] end ---")
+        # logger.info("--- [resize_image] end ---")
         return retval
 
     def _resize_image_cv(self, img, target_shape, pad=True, blur=False, aspect=True):
@@ -2203,8 +2203,8 @@ class CommonMixIn(object):
         """
         sw, sh = seg_img.shape[:2]
         if not ((w == sw) and (h == sh)):
-            logger.info(
-                '[resize_segment_image] org/(%s, %s), seg/(%s, %s)' % (w, h, sw, sh))
+            # logger.info(
+            #     '[resize_segment_image] org/(%s, %s), seg/(%s, %s)' % (w, h, sw, sh))
             # セグメントイメージが512x512のときは最近傍補間を使ってリサイズする
             seg_img = self.resize(seg_img, width=w, height=h,
                                   inter=cv2.INTER_NEAREST, aspect=False)
