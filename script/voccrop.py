@@ -1,19 +1,19 @@
 # -*- coding: utf-8 -*-
 
+from photo import Photo
+from common.common import CommonMixIn
+from crop import Crop
+from common.voc_fmt import VOCMixIn, VOCElem
+from datetime import datetime
+from PIL import Image
+import numpy as np
+import os
+import time
+import csv
+from argparse import ArgumentParser
 import sys
 sys.path.append("script")
 
-from argparse import ArgumentParser
-import csv
-import time
-import os
-import numpy as np
-from PIL import Image
-from datetime import datetime
-from common.voc_fmt import VOCMixIn, VOCElem
-from crop import Crop
-from common.common import CommonMixIn
-from photo import Photo
 # from trimming import Trimming
 # from ssdnet import MultiBoxEncoder, SSD300, SSD512, SSD300_v2, SSD512_v2, preproc_for_test
 
@@ -184,7 +184,9 @@ class VOCCrop(VOCMixIn, CommonMixIn):
                     area = self.intersection(photo_bbox, _bbox)
                     # print("_bbox: ", _bbox, area)
                     overlaped_ratio = area / self.area(photo_bbox)
-                    if (overlaped_ratio == 0.0):continue
+                    # print(overlaped_ratio)
+                    if (overlaped_ratio < 0.2):
+                        continue
                     if (overlaped_ratio != 1.0):
                         copy_bbox = list(photo_bbox)
                         if (photo_bbox[0] < _bbox[0]):
@@ -195,9 +197,10 @@ class VOCCrop(VOCMixIn, CommonMixIn):
                             # print(_bbox[0] + _bbox[2] - copy_bbox[0])
                             copy_bbox[2] = _bbox[0] + _bbox[2] - copy_bbox[0]
                         if (photo_bbox[0] + photo_bbox[2] <= _bbox[0] + _bbox[2]):
-                            copy_bbox[2] = (_bbox[0] + _bbox[2]) - (photo_bbox[0] + photo_bbox[2])
+                            copy_bbox[2] = photo_bbox[0] + \
+                                photo_bbox[2] - _bbox[0]
                     # print(copy_bbox)
-                    new_photo_bbox.append((tuple(copy_bbox),i))
+                    new_photo_bbox.append((tuple(copy_bbox), i))
                 # print(new_photo_bbox)
                 for box in new_photo_bbox:
                     cx, cy, cw, ch = crop_bbox = crop_bboxes[box[1]]
@@ -211,14 +214,15 @@ class VOCCrop(VOCMixIn, CommonMixIn):
                         if (crop_img is None):
                             # crop_imgが作成出来ない場合は保存対象外とする
                             print("[skip] invalid bbox [%d]:" %
-                                (box[1]), new_photo_bbox)
+                                  (box[1]), new_photo_bbox)
                             continue
                         if (self.h and self.w):
                             # resize mode
                             crop_img = self.resize_image(crop_img, (self.h, self.w),
-                                                        pad=self.options.pad, blur=self.options.blur,
-                                                        aspect=self.options.pad)
-                        bboxes_in[box[1]] = {"cropimg": crop_img, "objects": []}
+                                                         pad=self.options.pad, blur=self.options.blur,
+                                                         aspect=self.options.pad)
+                        bboxes_in[box[1]] = {
+                            "cropimg": crop_img, "objects": []}
                     bboxes_in[box[1]]["objects"].append(
                         (photo_lbl, tf_box))
         # print(selected_i)
