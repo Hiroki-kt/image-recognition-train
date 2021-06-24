@@ -178,7 +178,7 @@ class VOCCrop(VOCMixIn, CommonMixIn):
                     (photo_lbl, new_photo_bbox))
             elif (ratio > 0.0):
                 # 一部オーバーレイしている場合
-                # selected_i.add(crop_i)
+                selected_i.add(crop_i)
                 new_photo_bbox = []
                 for i, _bbox in enumerate(crop_bboxes):
                     area = self.intersection(photo_bbox, _bbox)
@@ -229,16 +229,16 @@ class VOCCrop(VOCMixIn, CommonMixIn):
         # for i in bboxes_in:
         #     print(bboxes_in[i]["objects"])
 
-        # for noselected_i in list(all_i - selected_i):
-        #     # 教師（座標）データに全くオーバーレイしていない（＝メガネかけていない）教師データを登録
-        #     crop_bbox = crop_bboxes[noselected_i]
-        #     crop_img = self.crop_image(img, crop_bbox)
-        #     if (self.h and self.w):
-        #         # resize mode
-        #         crop_img = self.resize_image(crop_img, (self.h, self.w),
-        #                                      pad=self.options.pad, blur=self.options.blur,
-        #                                      aspect=self.options.pad)
-        #     bboxes_in[noselected_i] = {"cropimg": crop_img, "objects": []}
+        for noselected_i in list(all_i - selected_i):
+            # 教師（座標）データに全くオーバーレイしていない（＝メガネかけていない）教師データを登録
+            crop_bbox = crop_bboxes[noselected_i]
+            crop_img = self.crop_image(img, crop_bbox)
+            if (self.h and self.w):
+                # resize mode
+                crop_img = self.resize_image(crop_img, (self.h, self.w),
+                                             pad=self.options.pad, blur=self.options.blur,
+                                             aspect=self.options.pad)
+            bboxes_in[noselected_i] = {"cropimg": crop_img, "objects": []}
 
         return bboxes_in
 
