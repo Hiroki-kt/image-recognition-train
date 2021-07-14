@@ -69,11 +69,12 @@ def voc_copy_imgs(data_path, output_path):
     key_json = json.load(key_open)
 
     origin_label_dist = voc_label_dist(data_path)
+    print("before", origin_label_dist)
     # add_label_dist = reset_dict(origin_label_dist.copy())
 
     cp_count = 1
     enough_labels = []
-    print("before", origin_label_dist)
+    enough_labels = update_enough_labels(output_path, enough_labels)
     while check_destination(key_json, output_path):
         for label_path in glob.glob(data_path + '/Annotations/*'):
             label_tree = ET.parse(label_path)
@@ -90,7 +91,7 @@ def voc_copy_imgs(data_path, output_path):
                     label_tree.write(ants_path + str(cp_count) + '.xml')
                     shutil.copy(img_path, imgs_path + str(cp_count) + '.jpg')
                 elif 'no-obj' not in enough_labels:
-                    if voc_label_dist(output_path)['no-obj'] >= key_json['no-obj']:
+                    if voc_label_dist(output_path)['no-obj'] <= key_json['no-obj']:
                         label_tree.write(ants_path + str(cp_count) + '.xml')
                         shutil.copy(img_path, imgs_path +
                                     str(cp_count) + '.jpg')
