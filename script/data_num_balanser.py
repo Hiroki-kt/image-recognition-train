@@ -45,7 +45,7 @@ def check_labels(label_root, enough_labels):
         # print(i.text)
         label = bb.find('name').text
         if label in enough_labels:
-            print("skip")
+            # print("skip")
             return 0
     return 1
 
@@ -90,8 +90,10 @@ def voc_copy_imgs(data_path, output_path):
                     label_tree.write(ants_path + str(cp_count) + '.xml')
                     shutil.copy(img_path, imgs_path + str(cp_count) + '.jpg')
                 elif 'no-obj' not in enough_labels:
-                    label_tree.write(ants_path + str(cp_count) + '.xml')
-                    shutil.copy(img_path, imgs_path + str(cp_count) + '.jpg')
+                    if voc_label_dist(output_path)['no-obj'] >= key_json['no-obj']:
+                        label_tree.write(ants_path + str(cp_count) + '.xml')
+                        shutil.copy(img_path, imgs_path +
+                                    str(cp_count) + '.jpg')
         enough_labels = update_enough_labels(output_path, enough_labels)
         cp_count += 1
     print("finish", voc_label_dist(output_path))
